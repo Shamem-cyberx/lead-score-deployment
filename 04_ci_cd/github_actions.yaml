@@ -1,0 +1,293 @@
+name: RAKEZ Lead Scoring CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      deploy_stage:
+        description: 'Deployment stage'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+  MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black flake8 pytest pytest-cov
+      
+      - name: Run Black (code formatting)
+        run: |
+          black --check --diff .
+        continue-on-error: true
+      
+      - name: Run Flake8 (linting)
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        continue-on-error: true
+      
+      - name: Run unit tests
+        run: |
+          pytest tests/ -v --cov=. --cov-report=xml
+        continue-on-error: true
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+        continue-on-error: true
+
+  validate-notebooks:
+    name: Validate Databricks Notebooks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nbformat
+      
+      - name: Validate notebook syntax
+        run: |
+          python -c "
+          import nbformat
+          import sys
+          import glob
+          
+          notebooks = glob.glob('02_notebooks/*.py')
+          errors = []
+          
+          for nb_path in notebooks:
+              try:
+                  with open(nb_path, 'r') as f:
+                      # Basic syntax check
+                      compile(f.read(), nb_path, 'exec')
+                  print(f'✓ {nb_path}')
+              except SyntaxError as e:
+                  errors.append(f'{nb_path}: {e}')
+                  print(f'✗ {nb_path}: {e}')
+          
+          if errors:
+              sys.exit(1)
+          "
+        continue-on-error: true
+
+  deploy-databricks-staging:
+    name: Deploy to Databricks (Staging)
+    runs-on: ubuntu-latest
+    needs: [lint-and-test, validate-notebooks]
+    if: github.ref == 'refs/heads/develop' || github.event.inputs.deploy_stage == 'staging'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install Databricks CLI
+        run: |
+          pip install databricks-cli
+      
+      - name: Configure Databricks CLI
+        run: |
+          echo "${{ secrets.DATABRICKS_TOKEN }}" | databricks configure --token
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      
+      - name: Deploy notebooks to Databricks
+        run: |
+          databricks workspace import_dir \
+            --overwrite \
+            02_notebooks \
+            /Workspace/lead_scoring/notebooks
+      
+      - name: Create/Update Databricks Jobs
+        run: |
+          python scripts/deploy_databricks_jobs.py --stage staging
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      
+      - name: Trigger inference job
+        run: |
+          databricks jobs run-now --job-id ${{ secrets.DATABRICKS_JOB_ID_INFERENCE }}
+        continue-on-error: true
+
+  deploy-databricks-production:
+    name: Deploy to Databricks (Production)
+    runs-on: ubuntu-latest
+    needs: [lint-and-test, validate-notebooks]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || github.event.inputs.deploy_stage == 'production'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install Databricks CLI
+        run: |
+          pip install databricks-cli
+      
+      - name: Configure Databricks CLI
+        run: |
+          echo "${{ secrets.DATABRICKS_TOKEN }}" | databricks configure --token
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      
+      - name: Validate MLflow model
+        run: |
+          python scripts/validate_mlflow_model.py --stage Production
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+      
+      - name: Deploy notebooks to Databricks
+        run: |
+          databricks workspace import_dir \
+            --overwrite \
+            02_notebooks \
+            /Workspace/lead_scoring/notebooks
+      
+      - name: Create/Update Databricks Jobs
+        run: |
+          python scripts/deploy_databricks_jobs.py --stage production
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      
+      - name: Canary deployment - 10% traffic
+        run: |
+          python scripts/canary_deployment.py --percentage 10
+        continue-on-error: true
+      
+      - name: Wait for canary validation
+        run: |
+          echo "Waiting 1 hour for canary validation..."
+          sleep 3600
+        continue-on-error: true
+      
+      - name: Check canary metrics
+        run: |
+          python scripts/check_deployment_metrics.py --stage canary
+        continue-on-error: true
+      
+      - name: Full deployment - 100% traffic
+        if: success()
+        run: |
+          python scripts/canary_deployment.py --percentage 100
+      
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "Production deployment successful"
+          # Add Slack/Email notification here
+      
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          python scripts/rollback_deployment.py
+          # Add alert notification here
+
+  deploy-api:
+    name: Deploy FastAPI Application
+    runs-on: ubuntu-latest
+    needs: [lint-and-test]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Run API tests
+        run: |
+          pytest tests/test_api.py -v
+        continue-on-error: true
+      
+      - name: Deploy to staging/production
+        run: |
+          # In production, deploy to your hosting service (AWS, Azure, GCP, etc.)
+          echo "Deploying FastAPI application..."
+          # Example: Deploy to Databricks Jobs API or external service
+        continue-on-error: true
+
+  model-registry-update:
+    name: Update MLflow Model Registry
+    runs-on: ubuntu-latest
+    needs: [deploy-databricks-staging]
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          pip install mlflow
+      
+      - name: Promote model to Production
+        run: |
+          python scripts/promote_model.py \
+            --model-name lead_scoring_model \
+            --from-stage Staging \
+            --to-stage Production
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+

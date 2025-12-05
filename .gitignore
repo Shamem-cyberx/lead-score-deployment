@@ -1,0 +1,96 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Environment Variables
+.env
+*.env
+!env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# MLflow
+mlruns/
+mlflow.db
+mlflow.db-journal
+
+# Logs
+*.log
+logs/
+audit_logs/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Project Specific
+# Keep sample data but ignore large files
+*.pkl
+*.model
+*.h5
+*.ckpt
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Secrets and keys
+*.key
+*.pem
+secrets/
+credentials.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Large data files (if any)
+*.csv.bak
+*.parquet
+
+# Backup files
+backup/
+*.backup
+

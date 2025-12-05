@@ -1,0 +1,67 @@
+# RAKEZ Lead Scoring Model - Requirements
+# Python 3.9+
+
+# Core ML Libraries
+mlflow>=2.8.0
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+lightgbm>=4.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Databricks & Spark
+pyspark>=3.4.0
+delta-spark>=2.4.0
+databricks-cli>=0.18.0
+
+# API Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.4.0
+python-multipart>=0.0.6
+
+# Dashboard
+streamlit>=1.28.0
+dash>=2.14.0
+plotly>=5.17.0
+
+# Monitoring & Drift Detection
+scipy>=1.11.0
+optuna>=3.4.0
+
+# Model Explainability & Fairness
+shap>=0.42.0
+lime>=0.2.0.1
+fairlearn>=0.9.0  # Optional - for advanced fairness metrics
+
+# Data Processing
+pyarrow>=14.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+
+# Code Quality
+black>=23.10.0
+flake8>=6.1.0
+mypy>=1.6.0
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
+python-dateutil>=2.8.2
+
+# Ollama Integration (Optional - for AI features)
+# Install Ollama separately: https://ollama.ai
+# Then run: ollama pull llama3.2
+
+# Logging
+structlog>=23.2.0
+
+# Optional: For production deployments
+# gunicorn>=21.2.0
+# prometheus-client>=0.18.0
+# opentelemetry-api>=1.21.0
+# opentelemetry-sdk>=1.21.0
+
