@@ -37,44 +37,54 @@
 
 ### System Components
 
+```mermaid
+graph TB
+    subgraph "Data Sources"
+        CRM[CRM System<br/>PostgreSQL]
+        WEB[Web Forms<br/>API]
+    end
+    
+    subgraph "Databricks Workspace"
+        DELTA[Delta Lake<br/>Bronze/Silver/Gold]
+        MLFLOW[MLflow Registry<br/>Production/Staging]
+        JOBS[Databricks Jobs<br/>Batch Processing]
+    end
+    
+    subgraph "Serving Layer"
+        API[FastAPI<br/>Real-time API]
+        BATCH[Batch Jobs<br/>Scheduled]
+    end
+    
+    subgraph "Monitoring System"
+        MONITOR[Monitoring<br/>Drift Detection]
+        DASH[Dashboard<br/>Plotly Dash]
+        ALERTS[Alerts<br/>Slack/Email]
+    end
+    
+    CRM --> DELTA
+    WEB --> DELTA
+    DELTA --> MLFLOW
+    MLFLOW --> API
+    MLFLOW --> BATCH
+    DELTA --> JOBS
+    API --> MONITOR
+    BATCH --> MONITOR
+    MONITOR --> DASH
+    MONITOR --> ALERTS
+    
+    style MLFLOW fill:#4CAF50
+    style API fill:#2196F3
+    style MONITOR fill:#FF9800
+    style DELTA fill:#00BCD4
 ```
-┌─────────────┐
-│   Data      │  CRM, Web Forms
-│  Sources    │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Databricks │  Delta Lake, Feature Engineering
-│  Workspace  │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│   MLflow    │  Model Registry (Production/Staging)
-│  Registry   │
-└──────┬──────┘
-       │
-   ┌───┴───┐
-   │       │
-   ▼       ▼
-┌─────┐ ┌──────────┐
-│ API │ │  Batch   │  Real-time & Batch Inference
-│     │ │  Jobs    │
-└──┬──┘ └────┬──────┘
-   │         │
-   ▼         ▼
-┌─────────────┐
-│ Monitoring  │  Dashboard, Alerts, Drift Detection
-│  System     │
-└─────────────┘
-```
+
+**📊 Full Architecture Diagrams**: See `06_docs/ARCHITECTURE_DIAGRAMS.md` for complete visual documentation.
 
 ### Key Technologies
 - **Databricks**: Data processing and batch inference
 - **MLflow**: Model versioning and registry
 - **FastAPI**: Real-time scoring API
-- **Streamlit**: Monitoring dashboard
+- **Plotly Dash**: Monitoring dashboard
 - **Delta Lake**: Data storage and versioning
 
 ---

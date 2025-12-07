@@ -279,6 +279,8 @@ rakez-lead-scoring-deployment/
 └── 📁 06_docs/                    # 📚 Documentation
     ├── detailed_readme.md         # Complete documentation
     ├── presentation_slides.md      # 10-slide presentation
+    ├── ARCHITECTURE_DIAGRAMS.md    # All architecture diagrams (9 diagrams)
+    ├── DIAGRAM_INDEX.md            # Diagram navigation guide
     └── CONVERT_PRESENTATION.md     # PPT/PDF conversion guide
 ```
 
@@ -308,7 +310,9 @@ See `QUICK_START.md` for complete setup and usage instructions.
 
 - **Complete Guide**: `06_docs/detailed_readme.md`
 - **Presentation**: `06_docs/presentation_slides.md`
-- **Architecture**: `01_architecture/` (Mermaid diagrams)
+- **All Architecture Diagrams**: `06_docs/ARCHITECTURE_DIAGRAMS.md` (9 comprehensive diagrams)
+- **Diagram Index**: `06_docs/DIAGRAM_INDEX.md` (Quick navigation)
+- **Detailed Architecture**: `01_architecture/` (Technical documentation with diagrams)
 
 ---
 

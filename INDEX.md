@@ -19,6 +19,8 @@
 | [ASSESSMENT_VERIFICATION_REPORT.md](ASSESSMENT_VERIFICATION_REPORT.md) | Requirements verification |
 | [06_docs/detailed_readme.md](06_docs/detailed_readme.md) | Comprehensive documentation |
 | [06_docs/presentation_slides.md](06_docs/presentation_slides.md) | 10-slide presentation |
+| [06_docs/ARCHITECTURE_DIAGRAMS.md](06_docs/ARCHITECTURE_DIAGRAMS.md) | All architecture diagrams (Mermaid) |
+| [06_docs/DIAGRAM_INDEX.md](06_docs/DIAGRAM_INDEX.md) | Diagram navigation guide |
 
 ## 📐 Architecture
 
@@ -27,6 +29,13 @@
 | [01_architecture/deployment_architecture.md](01_architecture/deployment_architecture.md) | Deployment architecture |
 | [01_architecture/monitoring_architecture.md](01_architecture/monitoring_architecture.md) | Monitoring system design |
 | [01_architecture/retraining_architecture.md](01_architecture/retraining_architecture.md) | Retraining workflow |
+
+## 🎨 Architecture Diagrams
+
+| Document | Description |
+|----------|-------------|
+| [06_docs/ARCHITECTURE_DIAGRAMS.md](06_docs/ARCHITECTURE_DIAGRAMS.md) | **Complete collection of all diagrams** (9 diagrams) |
+| [06_docs/DIAGRAM_INDEX.md](06_docs/DIAGRAM_INDEX.md) | Quick reference guide to all diagrams |
 
 ## 💻 Code
 

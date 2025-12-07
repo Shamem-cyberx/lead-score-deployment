@@ -54,6 +54,8 @@ rakez-lead-scoring-deployment/
 ├── 06_docs/
 │   ├── detailed_readme.md             # Comprehensive documentation
 │   ├── presentation_slides.md         # 10-slide presentation content
+│   ├── ARCHITECTURE_DIAGRAMS.md       # All architecture diagrams (9 diagrams)
+│   ├── DIAGRAM_INDEX.md               # Diagram navigation guide
 │   ├── RAKEZ_case_study_slides.pdf   # PDF version (to be generated)
 │   └── RAKEZ_case_study_slides.pptx  # PPT version (to be generated)
 │
@@ -95,7 +97,9 @@ rakez-lead-scoring-deployment/
 ## 📚 Documentation
 
 - **Detailed README**: See `06_docs/detailed_readme.md` for comprehensive documentation
-- **Architecture Diagrams**: See `01_architecture/` for Mermaid diagrams
+- **All Architecture Diagrams**: See `06_docs/ARCHITECTURE_DIAGRAMS.md` for complete collection (9 diagrams)
+- **Diagram Index**: See `06_docs/DIAGRAM_INDEX.md` for quick navigation
+- **Detailed Architecture**: See `01_architecture/` for technical documentation with diagrams
 - **Presentation**: See `06_docs/presentation_slides.md` for 10-slide presentation
 
 ## 🎯 Key Features
