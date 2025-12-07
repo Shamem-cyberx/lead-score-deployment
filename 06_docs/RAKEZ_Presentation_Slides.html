@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>RAKEZ Lead Scoring Model - Deployment & Monitoring</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1.2cm;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #2c3e50;
+        }
+        
+        .slide-page {
+            page-break-after: always;
+            page-break-inside: avoid;
+            min-height: 100vh;
+            padding: 60px 80px;
+            display: block;
+        }
+        
+        .slide-page:last-child {
+            page-break-after: auto;
+        }
+        
+        .slide-page h1 {
+            font-size: 3.5em !important;
+            text-align: center;
+            color: #2c3e50;
+            margin: 40px 0 50px 0;
+            padding-bottom: 30px;
+            border-bottom: 6px solid #3498db;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+        
+        .slide-page h2 {
+            font-size: 2.8em !important;
+            color: #34495e;
+            margin: 30px 0 35px 0;
+            padding-bottom: 20px;
+            border-bottom: 4px solid #95a5a6;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+        
+        .slide-page h3 {
+            font-size: 2.0em !important;
+            color: #555;
+            margin: 25px 0 20px 0;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+        
+        .slide-page h4 {
+            font-size: 1.7em !important;
+            color: #666;
+            margin: 20px 0 15px 0;
+            font-weight: bold;
+        }
+        
+        .slide-page p {
+            font-size: 1.5em !important;
+            line-height: 1.8;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        .slide-page ul, .slide-page ol {
+            font-size: 1.5em !important;
+            line-height: 2.0;
+            margin: 25px 0;
+            padding-left: 60px;
+        }
+        
+        .slide-page li {
+            margin: 18px 0;
+            color: #333;
+        }
+        
+        .slide-page strong {
+            color: #2c3e50;
+            font-weight: bold;
+            font-size: 1.05em;
+        }
+        
+        .slide-page code {
+            background-color: #f4f4f4;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            color: #e74c3c;
+        }
+        
+        .slide-page pre {
+            background-color: #f8f8f8;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            padding: 25px;
+            margin: 30px 0;
+            overflow-x: auto;
+            font-size: 1.1em;
+        }
+        
+        .slide-page pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #333;
+        }
+        
+        .slide-page table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 1.3em;
+        }
+        
+        .slide-page th {
+            background-color: #3498db;
+            color: white;
+            padding: 18px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .slide-page td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: left;
+        }
+        
+        .slide-page tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .slide-page blockquote {
+            border-left: 5px solid #3498db;
+            margin: 25px 0;
+            padding: 20px 30px;
+            background-color: #f0f8ff;
+            font-style: italic;
+            font-size: 1.4em;
+        }
+        
+        .slide-page hr {
+            border: none;
+            border-top: 3px solid #ddd;
+            margin: 40px 0;
+        }
+        
+        /* Special styling for title slide */
+        .slide-page:first-child h1 {
+            font-size: 4.5em !important;
+            margin: 80px 0 60px 0;
+        }
+        
+        .slide-page:first-child p {
+            font-size: 2.0em !important;
+            text-align: center;
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-page"># RAKEZ Lead Scoring Model - Deployment & Monitoring
+## 10-Slide Presentation</div>
+<div class="slide-page">## Slide 1: Title Slide
+
+**RAKEZ Lead Scoring Model**
+**End-to-End ML Engineering Solution**
+
+**Deployment, Monitoring & Operations**</div>
+<div class="slide-page">## Slide 2: Problem Summary
+
+### Business Challenge
+- **Need**: Prioritize leads to maximize sales team efficiency
+- **Current State**: Manual lead qualification, inconsistent prioritization
+- **Goal**: Automated lead scoring with real-time predictions
+
+### Technical Requirements
+- Real-time scoring API (< 200ms latency)
+- Continuous monitoring and drift detection
+- Automated retraining when performance degrades
+- Seamless CRM integration
+- Production-grade reliability (99.9% uptime)
+
+### Success Metrics
+- **Conversion Rate**: Increase by 15%
+- **Sales Efficiency**: Reduce time-to-contact by 30%
+- **Model Performance**: Maintain AUC > 0.85</div>
+<div class="slide-page">## Slide 3: End-to-End Architecture
+
+### System Components
+
+<div style="background-color: #e8f4f8; padding: 25px; border: 3px solid #3498db; border-radius: 8px; margin: 25px 0; text-align: center;">
+<h3 style="color: #2c3e50; margin: 0 0 10px 0;">📊 Architecture Diagram</h3>
+<p style="color: #555; margin: 0; font-style: italic;">See ARCHITECTURE_DIAGRAMS.md for visual version</p>
+</div>
+
+**📊 Full Architecture Diagrams**: See `06_docs/ARCHITECTURE_DIAGRAMS.md` for complete visual documentation.
+
+### Key Technologies
+- **Databricks**: Data processing and batch inference
+- **MLflow**: Model versioning and registry
+- **FastAPI**: Real-time scoring API
+- **Plotly Dash**: Monitoring dashboard
+- **Delta Lake**: Data storage and versioning</div>
+<div class="slide-page">## Slide 4: Deployment Plan
+
+### Deployment Strategy
+
+**Phase 1: Model Registry Setup**
+- Register initial model to MLflow
+- Set up Production and Staging stages
+- Configure model metadata and tags
+
+**Phase 2: Batch Inference**
+- Deploy Databricks job for batch scoring
+- Schedule daily runs at 2 AM
+- Update CRM with lead scores
+
+**Phase 3: Real-time API**
+- Deploy FastAPI service
+- Load model from MLflow registry
+- Enable shadow model for testing
+
+**Phase 4: Monitoring**
+- Deploy monitoring jobs (drift detection, metrics)
+- Set up Streamlit dashboard
+- Configure alerting (Slack, Email)
+
+### Deployment Methods
+- **Canary Deployment**: 10% → 50% → 100% traffic
+- **Shadow Deployment**: Parallel evaluation of new models
+- **Rollback Mechanism**: One-click reversion to previous version
+
+### Timeline
+- Week 1: Infrastructure setup
+- Week 2: Batch inference deployment
+- Week 3: Real-time API deployment
+- Week 4: Monitoring and alerting setup</div>
+<div class="slide-page">## Slide 5: Online Testing Strategy
+
+### A/B Testing Framework
+
+**Traffic Splitting**
+- Production Model: 90% traffic
+- New Model (Staging): 10% traffic
+- Compare performance metrics
+
+**Evaluation Metrics**
+- Conversion rate by model
+- Revenue per lead
+- Sales team feedback
+- Model performance (AUC, Precision, Recall)
+
+**Decision Criteria**
+- New model must show:
+  - +2% AUC improvement OR
+  - +5% business KPI improvement
+  - No increase in error rate
+  - No latency degradation
+
+### Shadow Model Deployment
+
+**Silent Evaluation**
+- Deploy new model alongside production
+- Route all traffic to both models
+- Compare predictions without affecting users
+- Monitor for 1-2 weeks before promotion
+
+**Benefits**
+- Zero-risk evaluation
+- Real-world performance data
+- Gradual confidence building
+
+### Testing Schedule
+- **Week 1-2**: Shadow deployment
+- **Week 3**: A/B test (10% traffic)
+- **Week 4**: Full promotion if successful</div>
+<div class="slide-page">## Slide 6: Monitoring & Alerting
+
+### Key Metrics
+
+**Performance Metrics**
+- **Latency**: P50, P95, P99 (Target: P95 < 200ms)
+- **Throughput**: Requests per second (Target: > 10 req/s)
+- **Error Rate**: HTTP errors (Target: < 1%)
+
+**Business Metrics**
+- **Conversion Rate**: Leads → Customers
+- **Revenue per Lead**: Average revenue
+- **Score Distribution**: Lead score buckets
+
+**Model Metrics**
+- **AUC**: Model discrimination (Target: > 0.85)
+- **Precision/Recall**: Classification performance
+- **Calibration**: Prediction probability accuracy
+
+### Alerting System
+
+**Alert Levels**
+- **Info**: Logged to dashboard
+- **Warning**: Slack notification (#ml-alerts)
+- **Critical**: Email + Slack + PagerDuty
+
+**Alert Thresholds**
+- Latency P95 > 500ms: Critical
+- Error rate > 1%: Critical
+- PSI > 0.5: Critical drift
+- Conversion rate drop > 10%: Warning
+
+### Monitoring Dashboard
+- Real-time metrics visualization
+- Drift detection charts
+- Alert log viewer
+- Model performance trends</div>
+<div class="slide-page">## Slide 7: Drift Detection
+
+### Drift Types
+
+**Data Drift**
+- Changes in feature distributions
+- New categories in categorical features
+- Missing value pattern changes
+
+**Concept Drift**
+- Changes in feature-target relationship
+- Model performance degradation
+- Business environment changes
+
+### Detection Methods
+
+**PSI (Population Stability Index)**
+- Measures distribution shift
+- Thresholds:
+  - PSI < 0.1: No change
+  - PSI 0.1-0.25: Moderate change (Warning)
+  - PSI > 0.25: Significant change (Critical)
+
+**KL Divergence**
+- Measures distribution difference
+- Threshold: KL > 0.1
+
+**Statistical Tests**
+- Kolmogorov-Smirnov test (continuous)
+- Chi-square test (categorical)
+- P-value < 0.05 indicates drift
+
+### Drift Response
+
+**Automatic Actions**
+- Log drift metrics to Delta table
+- Send alerts to monitoring team
+- Trigger retraining pipeline if PSI > 0.5
+
+**Monitoring Schedule**
+- Real-time: Feature statistics
+- Hourly: Distribution checks
+- Daily: PSI calculation
+- Weekly: Comprehensive drift report</div>
+<div class="slide-page">## Slide 8: CI/CD Workflow
+
+### Pipeline Stages
+
+**1. Code Quality**
+- Linting (Flake8)
+- Code formatting (Black)
+- Unit tests (Pytest)
+
+**2. Validation**
+- Notebook syntax validation
+- Model validation checks
+- Integration tests
+
+**3. Deployment**
+- **Staging**: Auto-deploy on develop branch
+- **Production**: Manual approval + canary deployment
+
+**4. Model Registry**
+- Register new models to MLflow
+- Promote from Staging to Production
+- Archive previous versions
+
+### Canary Deployment Process
+
+**Phase 1: 10% Traffic (1 day)**
+- Monitor latency, error rate, conversion
+- Automatic rollback on failure
+
+**Phase 2: 50% Traffic (2 days)**
+- Continue monitoring
+- Validate business metrics
+
+**Phase 3: 100% Traffic**
+- Full production deployment
+- Intensive monitoring for 48 hours
+
+### Rollback Mechanism
+- Automatic: Error rate > 2%, Latency > 50% degradation
+- Manual: One-click rollback to previous version
+- Maintains model registry history</div>
+<div class="slide-page">## Slide 9: Retraining Strategy
+
+### Retraining Triggers
+
+**Automatic Triggers**
+- Data drift detected (PSI > 0.25)
+- Model performance degradation (AUC drop > 5%)
+- Scheduled retraining (weekly/monthly)
+
+**Manual Triggers**
+- Business requirement changes
+- New feature availability
+- Admin-initiated retraining
+
+### Retraining Workflow
+
+**1. Data Collection**
+- Latest 6 months of labeled data
+- Minimum 10,000 records
+- Time-based train/test split
+
+**2. Model Training**
+- Hyperparameter optimization (Optuna, 50-100 trials)
+- Time series cross-validation
+- XGBoost/LightGBM models
+
+**3. Model Evaluation**
+- Compare with production model
+- Must show improvement:
+  - +2% AUC OR
+  - +5% business KPI
+- Shadow testing for 1-2 weeks
+
+**4. Model Promotion**
+- Register to MLflow Staging
+- Manual review and approval
+- Canary deployment
+- Promote to Production
+
+### Retraining Schedule
+- **First 3 months**: Weekly retraining
+- **After 3 months**: Monthly retraining
+- **Drift-triggered**: As needed</div>
+<div class="slide-page">## Slide 10: Sales Team Complaint Investigation
+
+### Scenario: "Model scores are wrong - high-scored leads aren't converting"
+
+### Investigation Workflow
+
+**Step 1: Immediate Response (Within 1 hour)**
+- Check model health metrics
+- Verify API is functioning correctly
+- Review recent model changes
+- Check for data quality issues
+
+**Step 2: Data Analysis (Within 4 hours)**
+- Analyze conversion rates by score bucket
+- Compare current vs historical performance
+- Check for data drift (PSI, KL divergence)
+- Review feature distributions
+
+**Step 3: Model Performance Review (Within 24 hours)**
+- Evaluate model metrics (AUC, Precision, Recall)
+- Compare production vs shadow model
+- Review calibration plots
+- Check for concept drift
+
+**Step 4: Root Cause Analysis**
+- **If Data Drift**: Investigate data source changes
+- **If Concept Drift**: Business environment may have changed
+- **If Model Issue**: Review training data and features
+- **If Integration Issue**: Check CRM sync and data pipeline
+
+**Step 5: Resolution**
+- **Data Issue**: Fix data pipeline, retrain model
+- **Model Issue**: Retrain with updated data/features
+- **Business Change**: Update model to reflect new patterns
+- **Integration Issue**: Fix CRM sync mechanism
+
+**Step 6: Communication**
+- Document findings and resolution
+- Update sales team with explanation
+- Implement preventive measures
+- Schedule follow-up review
+
+### Tools & Dashboards
+- Streamlit dashboard for metrics
+- MLflow UI for model comparison
+- Drift detection reports</div>
+<div class="slide-page">## Slide 11: Model Explainability & Fairness
+
+### Model Explainability
+
+**SHAP (SHapley Additive exPlanations)**
+- Feature importance for each prediction
+- Local and global explanations
+- Explainability API endpoint (`/explain-prediction`)
+
+**LIME (Local Interpretable Model-agnostic Explanations)**
+- Local model explanations
+- Feature contribution analysis
+- Human-readable explanations
+
+### Bias Detection & Fairness
+
+**Fairness Metrics**
+- **Demographic Parity**: Equal selection rates across groups
+- **Equalized Odds**: Equal true/false positive rates
+- **Selection Rate**: Fair selection across sensitive attributes
+
+**Bias Detection**
+- Automatic bias detection
+- Fairness threshold monitoring
+- Alert on bias violations
+
+### Transparency Benefits
+- ✅ Regulatory compliance (explainable AI requirements)
+- ✅ Trust and stakeholder confidence
+- ✅ Bias detection and mitigation
+- ✅ Model interpretability</div>
+<div class="slide-page">## Slide 12: Enhanced Auditability & Governance
+
+### Comprehensive Audit Logging
+
+**Audit Trail Components**
+- All API calls logged with user, timestamp, IP
+- Model deployment/rollback events
+- Data access tracking
+- Failed action logging
+
+**Compliance Features**
+- Immutable audit logs (7-year retention)
+- Compliance reporting
+- Regulatory audit support
+- Complete action traceability
+
+### ML Governance Framework
+
+**Model Approval Workflow**
+- Multi-stage approval process
+- Risk-based approval levels
+- Compliance validation
+- Documentation requirements
+
+**Risk Assessment**
+- Automated risk scoring
+- Risk factor analysis (data quality, performance, bias, stability, security)
+- Risk-based approval requirements
+- Risk mitigation planning
+
+**Governance Benefits**
+- ✅ Controlled model deployment
+- ✅ Risk management
+- ✅ Regulatory compliance
+- ✅ Accountability and transparency</div>
+<div class="slide-page">## Slide 13: Disaster Recovery & Business Continuity
+
+### Disaster Recovery Plan
+
+**Recovery Objectives**
+- **RTO (Recovery Time Objective)**: 4 hours
+- **RPO (Recovery Point Objective)**: 1 hour
+
+**Backup Strategy**
+- Model registry: Daily backups
+- Data: Daily incremental, weekly full
+- Configuration: On every change
+- Retention: 7 years (compliance)
+
+### Failover Mechanisms
+
+**API Failover**
+- Primary/Secondary regions
+- Automatic failover on health check failure
+- Load balancer routing
+
+**Model Failover**
+- Fallback to previous model version
+- Automatic rollback on errors
+- Performance-based failover
+
+**Data Failover**
+- Cross-region replication
+- Delta Lake failover
+- Data integrity validation
+
+### Business Continuity
+- ✅ 99.9% uptime target
+- ✅ Automated failover
+- ✅ Regular DR drills
+- ✅ Complete recovery procedures
+- Conversion rate analysis
+
+### Prevention
+- Daily monitoring of conversion rates
+- Weekly model performance reviews
+- Proactive drift detection
+- Regular stakeholder communication</div>
+<div class="slide-page">## Appendix: Key Metrics Dashboard
+
+### Real-time Metrics
+- API Latency: 145ms (P95)
+- Throughput: 25 req/s
+- Error Rate: 0.2%
+- Conversion Rate: 12.5%
+
+### Model Performance
+- AUC: 0.87
+- Precision: 0.82
+- Recall: 0.75
+- F1 Score: 0.78
+
+### Drift Status
+- Overall PSI: 0.15 (Normal)
+- No critical drift detected
+- All features within thresholds</div>
+<div class="slide-page">**End of Presentation**</div>
+</body>
+</html>
