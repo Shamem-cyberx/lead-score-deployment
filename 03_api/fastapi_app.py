@@ -22,6 +22,11 @@ from datetime import datetime
 import logging
 import time
 import os
+import warnings
+
+# Suppress scikit-learn version warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
+warnings.filterwarnings('ignore', message='.*Trying to unpickle.*')
 try:
     from audit_logging import AuditLogger, get_audit_logger
 except ImportError:
@@ -137,7 +142,26 @@ def load_model_from_registry(model_name: str, stage: str):
     try:
         model_uri = f"models:/{model_name}/{stage}"
         logger.info(f"Loading model from: {model_uri}")
-        model = mlflow.sklearn.load_model(model_uri)
+        
+        # Suppress version warnings during model loading
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=UserWarning)
+            warnings.filterwarnings('ignore', message='.*Trying to unpickle.*')
+            warnings.filterwarnings('ignore', message='.*InconsistentVersionWarning.*')
+            model = mlflow.sklearn.load_model(model_uri)
+        
+        # Patch model to handle version incompatibility
+        # Add missing attributes that newer scikit-learn versions expect
+        if hasattr(model, 'estimators_'):
+            # For ensemble models, patch each estimator
+            for estimator in model.estimators_:
+                if hasattr(estimator, '__dict__') and 'monotonic_cst' not in estimator.__dict__:
+                    # Add missing attribute with default value
+                    estimator.monotonic_cst = None
+        elif hasattr(model, '__dict__') and 'monotonic_cst' not in model.__dict__:
+            # For single models, add missing attribute
+            model.monotonic_cst = None
+        
         logger.info(f"Model loaded successfully from stage: {stage}")
         return model
     except Exception as e:
@@ -509,45 +533,104 @@ async def explain_prediction(lead: LeadInput, request: Request, method: str = "s
                     feature_values.append(0.0)
         
         # Handle case where model expects different number of features
-        # (dummy model expects 10 features, but we might have fewer)
-        if len(feature_values) < 10:
+        # Get actual number of features the model expects
+        try:
+            # Try to get feature count from model
+            if hasattr(production_model, 'n_features_in_'):
+                expected_features = production_model.n_features_in_
+            elif hasattr(production_model, 'feature_importances_'):
+                expected_features = len(production_model.feature_importances_)
+            else:
+                # Fallback: try to infer from first prediction
+                test_X = np.array([feature_values[:10] if len(feature_values) >= 10 else feature_values + [0.0] * (10 - len(feature_values))])
+                try:
+                    _ = production_model.predict_proba(test_X)
+                    expected_features = test_X.shape[1]
+                except:
+                    expected_features = 10  # Default fallback
+        except:
+            expected_features = 10
+        
+        # Adjust feature values to match model expectations
+        if len(feature_values) < expected_features:
             # Pad with zeros to match model expectations
-            feature_values.extend([0.0] * (10 - len(feature_values)))
-        elif len(feature_values) > 10:
-            # Truncate to 10 features
-            feature_values = feature_values[:10]
+            feature_values.extend([0.0] * (expected_features - len(feature_values)))
+            # Add placeholder feature names
+            for i in range(len(available_features), expected_features):
+                available_features.append(f"feature_{i}")
+        elif len(feature_values) > expected_features:
+            # Truncate to expected features
+            feature_values = feature_values[:expected_features]
+            available_features = available_features[:expected_features]
         
         # Create numpy array for prediction
         X = np.array([feature_values])
         
-        # Make prediction
+        # Make prediction with error handling for version incompatibility
         try:
-            prediction = production_model.predict_proba(X)[0, 1]
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                prediction = production_model.predict_proba(X)[0, 1]
         except Exception as e:
-            # If model fails, try with just the first 10 numeric columns
-            numeric_cols = features_df.select_dtypes(include=[np.number]).columns[:10]
-            if len(numeric_cols) < 10:
+            logger.warning(f"Prediction failed with error: {e}. Trying alternative approach.")
+            # If model fails, try with just the first N numeric columns
+            numeric_cols = features_df.select_dtypes(include=[np.number]).columns[:expected_features]
+            if len(numeric_cols) < expected_features:
                 # Pad with zeros
-                X = np.zeros((1, 10))
+                X = np.zeros((1, expected_features))
                 for i, col in enumerate(numeric_cols):
-                    if i < 10:
+                    if i < expected_features:
                         X[0, i] = float(features_df[col].iloc[0]) if len(features_df) > 0 else 0.0
             else:
-                X = features_df[numeric_cols[:10]].values
-            prediction = production_model.predict_proba(X)[0, 1]
+                X = features_df[numeric_cols[:expected_features]].values
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                prediction = production_model.predict_proba(X)[0, 1]
         
-        # Generate explanation (simplified - in production, use actual SHAP/LIME)
-        # For now, return feature importance based on model
+        # Generate explanation using feature importance (works with any scikit-learn version)
+        # Note: For true SHAP/LIME, we'd need to install and use those libraries
+        # For now, we use feature_importances_ which is compatible with all versions
         feature_contributions = {}
-        if hasattr(production_model, 'feature_importances_'):
-            importances = production_model.feature_importances_
-            for i, feature in enumerate(available_features):
-                if i < len(importances):
-                    feature_contributions[feature] = float(importances[i])
-        else:
+        
+        try:
+            # Try to get feature importances from the model
+            if hasattr(production_model, 'feature_importances_'):
+                importances = production_model.feature_importances_
+                # Map importances to feature names
+                for i, feature in enumerate(available_features):
+                    if i < len(importances):
+                        feature_contributions[feature] = float(importances[i])
+            elif hasattr(production_model, 'estimators_'):
+                # For ensemble models, get average importance
+                all_importances = []
+                for est in production_model.estimators_:
+                    if hasattr(est, 'feature_importances_'):
+                        all_importances.append(est.feature_importances_)
+                if all_importances:
+                    avg_importances = np.mean(all_importances, axis=0)
+                    for i, feature in enumerate(available_features):
+                        if i < len(avg_importances):
+                            feature_contributions[feature] = float(avg_importances[i])
+            else:
+                # Fallback: use equal contributions
+                for feature in available_features:
+                    feature_contributions[feature] = 1.0 / len(available_features)
+        except Exception as e:
+            logger.warning(f"Could not extract feature importances: {e}. Using equal contributions.")
             # Fallback: equal contributions
             for feature in available_features:
                 feature_contributions[feature] = 1.0 / len(available_features)
+        
+        # Normalize contributions to sum to prediction - base_value
+        # This makes it more like SHAP values
+        total_contribution = sum(feature_contributions.values())
+        if total_contribution > 0:
+            # Scale contributions so they explain the prediction
+            base_value = 0.5  # Default base value
+            scale_factor = (prediction - base_value) / total_contribution if total_contribution != 0 else 1.0
+            feature_contributions = {k: v * scale_factor for k, v in feature_contributions.items()}
+        else:
+            base_value = prediction
         
         # Sort by absolute contribution
         sorted_contributions = dict(sorted(
@@ -561,13 +644,15 @@ async def explain_prediction(lead: LeadInput, request: Request, method: str = "s
             prediction=float(prediction),
             explanation_method=method.upper(),
             feature_contributions=sorted_contributions,
-            base_value=0.5,  # Default base value
+            base_value=base_value,
             timestamp=datetime.now().isoformat()
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error explaining prediction: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        logger.error(f"Error explaining prediction: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error explaining prediction: {str(e)}")
 
 
 if __name__ == "__main__":

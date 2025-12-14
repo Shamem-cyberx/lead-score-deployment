@@ -21,12 +21,21 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import json
 import requests
+import re
 
 # Import Ollama integration
 try:
     from ollama_integration import ollama_client
-    OLLAMA_AVAILABLE = ollama_client.available
-except:
+    print(f"[DASHBOARD_STARTUP] Ollama client imported, checking availability...")
+    # Re-check availability in case Ollama started after module import
+    OLLAMA_AVAILABLE = ollama_client._check_availability()
+    # Update the client's availability status
+    ollama_client.available = OLLAMA_AVAILABLE
+    print(f"[DASHBOARD_STARTUP] Ollama available: {OLLAMA_AVAILABLE}, model: {ollama_client.model}")
+except Exception as e:
+    print(f"[DASHBOARD_STARTUP] Ollama integration error: {e}")
+    import traceback
+    traceback.print_exc()
     OLLAMA_AVAILABLE = False
     ollama_client = None
 
@@ -48,6 +57,62 @@ SAMPLE_DATA_DIR = Path(__file__).parent / "sample_data"
 # Cache for data loading (in-memory, fast)
 _data_cache = {}
 _cache_timestamps = {}
+
+def format_ai_insight_text(text: str):
+    """Format AI insight text with better HTML structure"""
+    if not text:
+        return html.P("No content available", className="text-muted")
+    
+    # Split by lines and process
+    lines = text.split('\n')
+    elements = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Check for numbered lists (1., 2., etc.)
+        if re.match(r'^\d+\.', line):
+            content = re.sub(r'^\d+\.\s*', '', line)
+            if content.startswith('**') and content.endswith('**'):
+                # Bold header
+                header = content[2:-2]
+                elements.append(html.Div([
+                    html.Strong(header, style={"color": "#667eea", "fontSize": "1.1rem"}),
+                ], className="ai-recommendation-item"))
+            else:
+                elements.append(html.Div([
+                    html.P(content, className="mb-0")
+                ], className="ai-recommendation-item"))
+        elif line.startswith('- ') or line.startswith('* '):
+            # Bullet point
+            content = line[2:].strip()
+            elements.append(html.Li(content))
+        elif line.startswith('**') and line.endswith('**'):
+            # Bold header
+            header = line[2:-2]
+            elements.append(html.H5(header, className="mt-3 mb-2", style={"color": "#667eea"}))
+        elif ':' in line and len(line.split(':')) == 2:
+            # Key-value pair
+            key, value = line.split(':', 1)
+            elements.append(html.P([
+                html.Strong(f"{key.strip()}: ", style={"color": "#667eea"}),
+                value.strip()
+            ], className="mb-2"))
+        else:
+            # Regular paragraph - split by sentences for better formatting
+            sentences = [s.strip() for s in line.split('. ') if s.strip()]
+            for sentence in sentences:
+                if not sentence.endswith('.'):
+                    sentence += '.'
+                elements.append(html.P(sentence, className="mb-2"))
+    
+    if not elements:
+        # Fallback: just show the text
+        return html.Div([html.P(line, className="mb-2") for line in text.split('\n') if line.strip()])
+    
+    return html.Div(elements)
 
 def load_data_from_csv(filename, days=30):
     """Load and filter data from CSV files - uses TODAY's date for filtering"""
@@ -258,6 +323,95 @@ app.index_string = '''
                 text-align: center;
                 padding: 40px;
             }
+            /* AI Insights Styling */
+            .ai-insight-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 12px;
+                padding: 25px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+                border-left: 4px solid #667eea;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .ai-insight-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 12px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .ai-insight-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+                color: white;
+            }
+            .ai-insight-header i {
+                font-size: 1.5rem;
+                margin-right: 12px;
+                background: rgba(255,255,255,0.2);
+                padding: 10px;
+                border-radius: 8px;
+            }
+            .ai-insight-header h4 {
+                margin: 0;
+                color: white;
+                font-weight: 600;
+            }
+            .ai-insight-content {
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                color: #2c3e50;
+                line-height: 1.8;
+                font-size: 0.95rem;
+            }
+            .ai-insight-content strong {
+                color: #667eea;
+                font-weight: 600;
+            }
+            .ai-insight-content ul, .ai-insight-content ol {
+                margin: 10px 0;
+                padding-left: 25px;
+            }
+            .ai-insight-content li {
+                margin: 8px 0;
+            }
+            .ai-status-badge {
+                display: inline-flex;
+                align-items: center;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                font-weight: 500;
+                margin-bottom: 20px;
+            }
+            .ai-status-success {
+                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                color: white;
+            }
+            .ai-status-warning {
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                color: white;
+            }
+            .ai-insights-container {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 12px;
+                margin-top: 20px;
+            }
+            .ai-math-highlight {
+                background: #fff3cd;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-family: 'Courier New', monospace;
+                font-weight: 600;
+                color: #856404;
+            }
+            .ai-recommendation-item {
+                background: #f8f9fa;
+                border-left: 3px solid #667eea;
+                padding: 12px 15px;
+                margin: 10px 0;
+                border-radius: 4px;
+            }
         </style>
     </head>
     <body>
@@ -360,29 +514,59 @@ def update_filter_display(days):
     Output("tab-content", "children"),
     [Input("main-tabs", "value"),
      Input("time-range-dropdown", "value"),
-     Input("refresh-trigger", "children")]
+     Input("refresh-trigger", "children")],
+    prevent_initial_call=False
 )
 def update_tab_content(active_tab, days, refresh_trigger):
     """Update content based on active tab - clears cache when time range changes"""
-    # Clear cache when time range changes (cache key includes days, but clear to be safe)
-    # The cache will be rebuilt with new days parameter automatically
-    clear_cache()
-    
-    if active_tab == "overview":
-        return render_overview_tab(days)
-    elif active_tab == "drift":
-        return render_drift_tab(days)
-    elif active_tab == "performance":
-        return render_performance_tab(days)
-    elif active_tab == "business":
-        return render_business_tab(days)
-    elif active_tab == "explainability":
-        return render_explainability_tab()
-    elif active_tab == "alerts":
-        return render_alerts_tab(days)
-    elif active_tab == "ai":
-        return render_ai_tab(days)
-    return html.Div("Select a tab")
+    try:
+        print(f"[CALLBACK] update_tab_content called - tab: {active_tab}, days: {days}")
+        # Clear cache when time range changes (cache key includes days, but clear to be safe)
+        # The cache will be rebuilt with new days parameter automatically
+        clear_cache()
+        
+        if active_tab == "overview":
+            return render_overview_tab(days)
+        elif active_tab == "drift":
+            return render_drift_tab(days)
+        elif active_tab == "performance":
+            return render_performance_tab(days)
+        elif active_tab == "business":
+            return render_business_tab(days)
+        elif active_tab == "explainability":
+            return render_explainability_tab()
+        elif active_tab == "alerts":
+            return render_alerts_tab(days)
+        elif active_tab == "ai":
+            print(f"[DEBUG] Rendering AI Insights tab with days={days}")
+            try:
+                result = render_ai_tab(days)
+                print(f"[DEBUG] AI tab rendered successfully, type: {type(result)}")
+                return result
+            except Exception as e:
+                print(f"[ERROR] Failed to render AI tab: {e}")
+                import traceback
+                traceback.print_exc()
+                return html.Div([
+                    html.Div([
+                        html.H4("Error Loading AI Insights", className="mb-3 text-danger"),
+                        html.P(f"Error: {str(e)}", className="text-danger"),
+                        html.P("Please check the console for more details.", className="text-muted")
+                    ], className="alert alert-danger")
+                ])
+        return html.Div("Select a tab")
+    except Exception as e:
+        # Log error and return error message
+        print(f"Error in update_tab_content for tab '{active_tab}': {e}")
+        import traceback
+        traceback.print_exc()
+        return html.Div([
+            html.Div([
+                html.H4("Error Loading Tab Content", className="mb-3 text-danger"),
+                html.P(f"Error: {str(e)}", className="text-danger"),
+                html.P("Please check the console for more details.", className="text-muted")
+            ], className="alert alert-danger")
+        ])
 
 def render_overview_tab(days):
     """Render overview tab"""
@@ -1063,18 +1247,103 @@ def generate_explanation(n_clicks, lead_id, company_size, industry, page_views,
 
 def render_ai_tab(days):
     """Render AI Insights tab with Ollama integration"""
-    metrics_df = load_metrics_data(days)
-    predictions_df = load_predictions_data(days)
-    drift_df = load_drift_data(days)
+    global ollama_client  # Declare global at the start
+    
+    print(f"[AI_TAB] Starting render_ai_tab with days={days}")
+    
+    # Wrap entire function in try-catch to ensure it always returns something
+    try:
+        print("[AI_TAB] Loading data...")
+        metrics_df = load_metrics_data(days)
+        predictions_df = load_predictions_data(days)
+        drift_df = load_drift_data(days)
+        print(f"[AI_TAB] Data loaded - metrics: {len(metrics_df)}, predictions: {len(predictions_df)}, drift: {len(drift_df)}")
+    except Exception as e:
+        print(f"[AI_TAB] Error loading data: {e}")
+        import traceback
+        traceback.print_exc()
+        return html.Div([
+            html.Div([
+                html.H4("Error Loading Data", className="mb-3 text-danger"),
+                html.P(f"Error: {str(e)}", className="text-danger"),
+                html.P("Please check the console for more details.", className="text-muted")
+            ], className="alert alert-danger")
+        ])
+    
+    # Check Ollama availability dynamically (in case it started after dashboard)
+    print(f"[AI_TAB] Checking Ollama - client exists: {ollama_client is not None}")
+    ollama_available_now = False
+    available_models = []
+    
+    try:
+        if ollama_client:
+            print(f"[AI_TAB] Ollama client found, checking availability...")
+            try:
+                ollama_available_now = ollama_client._check_availability()
+                ollama_client.available = ollama_available_now
+                print(f"[AI_TAB] Ollama availability check result: {ollama_available_now}")
+                # Get available models
+                if ollama_available_now:
+                    print(f"[AI_TAB] Ollama is available, getting models...")
+                    try:
+                        import requests
+                        response = requests.get(f"{ollama_client.base_url}/api/tags", timeout=5)
+                        if response.status_code == 200:
+                            models = response.json().get('models', [])
+                            available_models = [m.get('name', '') for m in models]
+                    except Exception as e:
+                        print(f"Error getting models: {e}")
+                        pass
+            except Exception as e:
+                print(f"Error checking Ollama availability: {e}")
+                ollama_available_now = False
+        else:
+            # Try to re-import if not available
+            print("[AI_TAB] Ollama client not found, trying to re-import...")
+            try:
+                from ollama_integration import ollama_client as new_client
+                ollama_available_now = new_client._check_availability()
+                print(f"[AI_TAB] Re-imported client, availability: {ollama_available_now}")
+                if ollama_available_now:
+                    ollama_client = new_client
+                    print("[AI_TAB] Ollama client updated")
+                    # Get available models
+                    try:
+                        import requests
+                        response = requests.get(f"{ollama_client.base_url}/api/tags", timeout=5)
+                        if response.status_code == 200:
+                            models = response.json().get('models', [])
+                            available_models = [m.get('name', '') for m in models]
+                    except Exception as e:
+                        print(f"Error getting models: {e}")
+                        pass
+            except Exception as e:
+                print(f"Error importing Ollama client: {e}")
+                pass
+    except Exception as e:
+        print(f"Unexpected error in Ollama check: {e}")
+        ollama_available_now = False
     
     # Check Ollama availability
-    ollama_status = html.Div([
-        html.I(className="fas fa-robot me-2"),
-        html.Span("Ollama AI is available" if OLLAMA_AVAILABLE else "Ollama AI is not available. Install Ollama to enable AI features.", 
-                 className="text-success" if OLLAMA_AVAILABLE else "text-warning")
-    ], className=f"alert {'alert-success' if OLLAMA_AVAILABLE else 'alert-warning'} mb-3")
+    print(f"[AI_TAB] Final availability check: {ollama_available_now}, models: {len(available_models)}")
+    if ollama_available_now:
+        model_info = ""
+        if available_models:
+            model_info = f" ({len(available_models)} models available: {', '.join(available_models[:3])}{'...' if len(available_models) > 3 else ''})"
+        ollama_status = html.Div([
+            html.I(className="fas fa-robot me-2"),
+            html.Span(f"Ollama AI is available{model_info}", className="text-white")
+        ], className="ai-status-badge ai-status-success")
+        print(f"[AI_TAB] Created success status with model info: {model_info}")
+    else:
+        ollama_status = html.Div([
+            html.I(className="fas fa-exclamation-triangle me-2"),
+            html.Span("Ollama AI is not available. Install Ollama to enable AI features.", className="text-white")
+        ], className="ai-status-badge ai-status-warning")
+        print("[AI_TAB] Created warning status (Ollama not available)")
     
-    if not OLLAMA_AVAILABLE:
+    if not ollama_available_now:
+        print("[AI_TAB] Returning installation instructions (Ollama not available)")
         return html.Div([
             ollama_status,
             html.Div([
@@ -1092,46 +1361,185 @@ def render_ai_tab(days):
         ])
     
     # Generate insights
+    print(f"[AI_TAB] Generating insights - metrics empty: {metrics_df.empty}, client exists: {ollama_client is not None}, available: {ollama_available_now}")
     insights = []
     
-    if not metrics_df.empty and ollama_client:
-        # Performance recommendations
-        try:
-            recommendations = ollama_client.generate_recommendations(metrics_df, predictions_df)
-            insights.append(html.Div([
-                html.H4("Performance Recommendations", className="mb-3"),
-                html.Div(recommendations, className="p-3 bg-light rounded")
-            ], className="metric-card mb-3"))
-        except Exception as e:
-            insights.append(html.Div([
-                html.H4("Performance Recommendations", className="mb-3"),
-                html.Div(f"Error generating recommendations: {str(e)}", className="p-3 bg-light rounded text-danger")
-            ], className="metric-card mb-3"))
-        
-        # Drift analysis
-        if not drift_df.empty:
+    try:
+        if not metrics_df.empty and ollama_client and ollama_available_now:
+            print("[AI_TAB] All conditions met, generating recommendations...")
+            # Performance recommendations
             try:
-                drift_explanation = ollama_client.explain_drift(drift_df)
+                import time
+                rec_start = time.time()
+                print("[AI_TAB] Calling generate_recommendations...")
+                print(f"[AI_TAB] Metrics data: {len(metrics_df)} rows, columns: {list(metrics_df.columns)}")
+                print(f"[AI_TAB] Predictions data: {len(predictions_df)} rows")
+                if not metrics_df.empty:
+                    latest = metrics_df.iloc[-1]
+                    print(f"[AI_TAB] Latest metrics - Conversion: {latest.get('conversion_rate', 'N/A')}%, "
+                          f"Latency: {latest.get('p95_latency_ms', 'N/A')}ms, "
+                          f"Error: {latest.get('error_rate', 'N/A')}%")
+                recommendations = ollama_client.generate_recommendations(metrics_df, predictions_df)
+                rec_time = time.time() - rec_start
+                print(f"[AI_TAB] Recommendations generated: {len(recommendations)} characters in {rec_time:.2f}s")
+                # Format recommendations with better UI
+                formatted_recommendations = format_ai_insight_text(recommendations)
                 insights.append(html.Div([
-                    html.H4("Data Drift Analysis", className="mb-3"),
-                    html.Div(drift_explanation, className="p-3 bg-light rounded")
-                ], className="metric-card mb-3"))
+                    html.Div([
+                        html.I(className="fas fa-chart-line"),
+                        html.H4("Performance Recommendations", className="mb-0")
+                    ], className="ai-insight-header"),
+                    html.Div([
+                        formatted_recommendations
+                    ], className="ai-insight-content")
+                ], className="ai-insight-card"))
+                print("[AI_TAB] Recommendations added to insights list")
             except Exception as e:
+                print(f"[AI_TAB] Error generating recommendations: {e}")
+                import traceback
+                traceback.print_exc()
                 insights.append(html.Div([
-                    html.H4("Data Drift Analysis", className="mb-3"),
-                    html.Div(f"Error analyzing drift: {str(e)}", className="p-3 bg-light rounded text-danger")
-                ], className="metric-card mb-3"))
-    
-    if not insights:
+                    html.Div([
+                        html.I(className="fas fa-exclamation-circle"),
+                        html.H4("Performance Recommendations", className="mb-0")
+                    ], className="ai-insight-header"),
+                    html.Div([
+                        html.P(f"Error generating recommendations: {str(e)}", className="text-danger mb-0")
+                    ], className="ai-insight-content")
+                ], className="ai-insight-card"))
+            
+            # Drift analysis (with timeout protection)
+            if not drift_df.empty:
+                try:
+                    import time
+                    drift_start = time.time()
+                    print("[AI_TAB] Starting drift analysis...")
+                    print(f"[AI_TAB] Drift data: {len(drift_df)} rows, columns: {list(drift_df.columns)}")
+                    if 'psi' in drift_df.columns:
+                        print(f"[AI_TAB] PSI stats - Mean: {drift_df['psi'].mean():.3f}, "
+                              f"Std: {drift_df['psi'].std():.3f}, "
+                              f"Min: {drift_df['psi'].min():.3f}, "
+                              f"Max: {drift_df['psi'].max():.3f}")
+                    drift_explanation = ollama_client.explain_drift(drift_df)
+                    drift_time = time.time() - drift_start
+                    print(f"[AI_TAB] Drift explanation received: {len(drift_explanation)} characters in {drift_time:.2f}s")
+                    # Format drift analysis with better UI
+                    formatted_drift = format_ai_insight_text(drift_explanation)
+                    insights.append(html.Div([
+                        html.Div([
+                            html.I(className="fas fa-exclamation-triangle"),
+                            html.H4("Data Drift Analysis", className="mb-0")
+                        ], className="ai-insight-header"),
+                        html.Div([
+                            formatted_drift
+                        ], className="ai-insight-content")
+                    ], className="ai-insight-card"))
+                    print("[AI_TAB] Drift analysis added successfully")
+                except requests.exceptions.Timeout:
+                    print("[AI_TAB] Drift analysis timed out, skipping")
+                    insights.append(html.Div([
+                        html.Div([
+                            html.I(className="fas fa-clock"),
+                            html.H4("Data Drift Analysis", className="mb-0")
+                        ], className="ai-insight-header"),
+                        html.Div([
+                            html.P("Drift analysis timed out. Please try again.", className="text-warning mb-0")
+                        ], className="ai-insight-content")
+                    ], className="ai-insight-card"))
+                except Exception as e:
+                    print(f"[AI_TAB] Error analyzing drift: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    insights.append(html.Div([
+                        html.Div([
+                            html.I(className="fas fa-exclamation-circle"),
+                            html.H4("Data Drift Analysis", className="mb-0")
+                        ], className="ai-insight-header"),
+                        html.Div([
+                            html.P(f"Error analyzing drift: {str(e)}", className="text-danger mb-0")
+                        ], className="ai-insight-content")
+                    ], className="ai-insight-card"))
+            else:
+                print("[AI_TAB] Drift dataframe is empty, skipping drift analysis")
+        
+        if not insights:
+            print("[AI_TAB] No insights generated, adding placeholder")
+            insights.append(html.Div([
+                html.Div([
+                    html.I(className="fas fa-info-circle"),
+                    html.H4("No Insights Available", className="mb-0")
+                ], className="ai-insight-header"),
+                html.Div([
+                    html.P("Load data to generate AI insights.", className="mb-0 text-muted")
+                ], className="ai-insight-content")
+            ], className="ai-insight-card"))
+        else:
+            print(f"[AI_TAB] Successfully generated {len(insights)} insights")
+    except Exception as e:
+        print(f"[AI_TAB] Error generating insights: {e}")
+        import traceback
+        traceback.print_exc()
         insights.append(html.Div([
-            html.H4("No Insights Available", className="mb-3"),
-            html.P("Load data to generate AI insights.")
-        ], className="metric-card"))
+            html.Div([
+                html.I(className="fas fa-exclamation-circle"),
+                html.H4("Error", className="mb-0")
+            ], className="ai-insight-header"),
+            html.Div([
+                html.P(f"An error occurred: {str(e)}", className="text-danger mb-0")
+            ], className="ai-insight-content")
+        ], className="ai-insight-card"))
     
-    return html.Div([
-        ollama_status,
-        html.Div(insights)
-    ])
+    try:
+        print(f"[AI_TAB] Creating final return with {len(insights)} insights")
+        print(f"[AI_TAB] Insights list: {[type(i).__name__ for i in insights]}")
+        
+        # Ensure we always have at least the status
+        if not insights:
+            insights.append(html.Div([
+                html.Div([
+                    html.I(className="fas fa-info-circle"),
+                    html.H4("No Insights Available", className="mb-0")
+                ], className="ai-insight-header"),
+                html.Div([
+                    html.P("Load data to generate AI insights.", className="mb-0 text-muted")
+                ], className="ai-insight-content")
+            ], className="ai-insight-card"))
+        
+        # Create the final result with enhanced UI
+        result_children = [
+            ollama_status,
+            html.Div([
+                html.Div([
+                    html.H3([
+                        html.I(className="fas fa-brain me-2"),
+                        "AI-Powered Insights"
+                    ], className="mb-4", style={"color": "#2c3e50", "fontWeight": "600"}),
+                    html.P("Advanced mathematical and algorithmic analysis of your lead scoring model performance.", 
+                          className="text-muted mb-4")
+                ], className="mb-4"),
+                html.Div(insights, className="ai-insights-container")
+            ])
+        ]
+        
+        result = html.Div(result_children, id="ai-tab-content")
+        
+        print(f"[AI_TAB] Returning result, type: {type(result)}")
+        print(f"[AI_TAB] Result children count: {len(result.children) if hasattr(result, 'children') else 'N/A'}")
+        if hasattr(result, 'children') and len(result.children) > 0:
+            print(f"[AI_TAB] First child type: {type(result.children[0]).__name__}")
+        print("[AI_TAB] *** RETURNING RESULT NOW ***")
+        return result
+    except Exception as e:
+        print(f"[AI_TAB] Error rendering AI tab: {e}")
+        import traceback
+        traceback.print_exc()
+        return html.Div([
+            html.Div([
+                html.H4("Error Rendering AI Insights", className="mb-3 text-danger"),
+                html.P(f"Error: {str(e)}", className="text-danger"),
+                html.P("Please check the console for more details.", className="text-muted")
+            ], className="alert alert-danger")
+        ])
 
 # Chart creation functions
 def create_performance_chart(df):
